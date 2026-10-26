@@ -77,6 +77,18 @@ Open `http://localhost:3000`. The console starts empty when the API has no alert
 
 The console sections are live API surfaces: Overview and Alert queue read cases, Transactions looks up or scores canonical transactions, Rules reads/publishes versioned rule configuration, Audit trail reads tenant audit events, and Webhooks registers endpoints/replays failed deliveries. The bootstrap key must include the scopes required by the sections you use.
 
+### Complete sandbox payment showcase
+
+Open the **Checkout** section at `http://localhost:3000`. It runs a full synthetic journey without real money:
+
+1. Enter an order, amount in minor units, account/device references, and a named test payment method.
+2. The mock gateway returns approved, declined, or timeout.
+3. FraudLens scores the same payment in shadow mode.
+4. The merchant policy outcome remains separate from the FraudLens recommendation.
+5. The payment timeline, transaction, assessment, alert, and audit event are persisted.
+
+Use `test_approved` for the normal path, `test_declined` for a provider failure, and an amount above the configured risk threshold to demonstrate a payment that succeeds while FraudLens recommends review.
+
 Score a synthetic transaction after bootstrapping a tenant key:
 
 ```bash

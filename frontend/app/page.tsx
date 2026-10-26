@@ -9,10 +9,10 @@ import type {
   DashboardStatus,
   RiskLevel,
 } from "@/lib/types";
-import { AuditView, OverviewView, RulesView, TransactionsView, WebhooksView } from "@/app/components/OperationsViews";
+import { AuditView, CheckoutView, OverviewView, RulesView, TransactionsView, WebhooksView } from "@/app/components/OperationsViews";
 
 type Filter = AlertStatus | "all";
-type View = "overview" | "alerts" | "transactions" | "rules" | "audit" | "webhooks";
+type View = "overview" | "checkout" | "alerts" | "transactions" | "rules" | "audit" | "webhooks";
 
 const statusLabels: Record<AlertStatus, string> = {
   open: "Open",
@@ -31,6 +31,7 @@ const riskLabels: Record<RiskLevel, string> = {
 
 const navItems = [
   { label: "Overview", icon: "grid", view: "overview" },
+  { label: "Checkout", icon: "cart", view: "checkout" },
   { label: "Alert queue", icon: "radar", view: "alerts" },
   { label: "Transactions", icon: "pulse", view: "transactions" },
   { label: "Rules", icon: "sliders", view: "rules" },
@@ -51,6 +52,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
   if (name === "close") return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
   if (name === "lock") return <svg {...common}><rect x="5" y="10" width="14" height="10" rx="1" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
   if (name === "link") return <svg {...common}><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" /><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" /></svg>;
+  if (name === "cart") return <svg {...common}><path d="M4 5h2l2 11h9l3-8H7" /><circle cx="10" cy="20" r="1" fill="currentColor" /><circle cx="17" cy="20" r="1" fill="currentColor" /></svg>;
   return <svg {...common}><circle cx="12" cy="12" r="8" /></svg>;
 }
 
@@ -262,6 +264,7 @@ export default function OperationsConsole() {
           </section> : null}
 
           {activeView === "overview" ? <OverviewView alerts={alerts} onOpenAlert={(id) => { setSelectedId(id); setActiveView("alerts"); }} onOpenQueue={() => setActiveView("alerts")} onRefresh={() => void loadAlerts()} /> : null}
+          {activeView === "checkout" ? <CheckoutView /> : null}
 
           {activeView === "transactions" ? <TransactionsView /> : null}
           {activeView === "rules" ? <RulesView /> : null}

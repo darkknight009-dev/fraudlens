@@ -1,7 +1,12 @@
-from data.synthetic.generate import generate_records
+from pathlib import Path
 
+from data.synthetic.generate import generate_records
+from scripts.train_model import train
+
+from app.core.config import Settings
 from app.services.detectors.isolation_forest import IsolationForestDetector
 from app.services.features import FEATURE_NAMES, extract_features
+from app.services.ml_runtime import load_detector
 
 
 def test_synthetic_generation_is_reproducible_and_labeled() -> None:
@@ -32,3 +37,23 @@ def test_isolation_forest_is_deterministic_and_requires_fit() -> None:
     second = second_detector.score(features[40:])
     assert first == second
     assert all(0 <= score <= 100 for score in first)
+
+
+def test_training_writes_reviewable_artifact(tmp_path: Path) -> None:
+    artifact = tmp_path / "model.joblib"
+    report = tmp_path / "report.json"
+
+    result = train(seed=42, count=100, artifact=artifact, report_path=report)
+
+    assert artifact.is_file()
+    assert report.is_file()
+    assert result["model_version"] == "isolation-forest-v1"
+    detector, version = load_detector(
+        Settings(
+            app_env="test",
+            api_key_hash_pepper="test-pepper-with-at-least-32-characters",
+            model_artifact_path=str(artifact),
+        )
+    )
+    assert detector is not None
+    assert version == "isolation-forest-v1"

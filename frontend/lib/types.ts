@@ -114,3 +114,26 @@ export type WebhookDelivery = {
   next_attempt_at: string | null;
   delivered_at: string | null;
 };
+
+export type Payment = {
+  id: string;
+  merchant_order_id: string;
+  amount_minor: number;
+  currency: string;
+  channel: string;
+  payment_method_label: string;
+  payment_status: string;
+  provider_status: string;
+  provider_reference: string | null;
+  risk_score: number | null;
+  risk_level: RiskLevel | null;
+  risk_recommendation: string | null;
+  assessment_id: string | null;
+  transaction_id: string | null;
+  merchant_decision: string | null;
+  created_at: string;
+  updated_at: string;
+  attempts: { id: string; provider: string; status: string; provider_reference: string | null; response_metadata: Record<string, unknown>; created_at: string }[];
+  timeline: { name: string; status: string; detail: string }[];
+  metadata: Record<string, unknown>;
+};

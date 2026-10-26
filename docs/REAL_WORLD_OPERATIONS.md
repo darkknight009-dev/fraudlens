@@ -2,7 +2,7 @@
 
 FraudLens is an intelligence and investigation layer placed beside an existing payment or transaction system. It does not become the payment processor and it does not own the final authorisation decision.
 
-## 1. Transaction path
+## 1. Transaction and payment path
 
 ```text
 Customer action
@@ -21,6 +21,8 @@ Merchant / fintech transaction system
 ```
 
 For a synchronous integration, the merchant calls `POST /v1/transactions/score` with a tenant-scoped API key and an idempotency key. FraudLens validates the payload, persists the transaction and assessment, evaluates the active rule set, and returns an explainable assessment. The merchant's existing policy engine decides whether the transaction is approved, reviewed, or declined.
+
+The local Checkout page demonstrates the complete sequence with `POST /v1/sandbox/payments`: a synthetic customer request goes to a deterministic mock gateway, the same payment is sent through FraudLens, and the final response explicitly shows both outcomes. In production, the mock gateway is replaced by the merchant's PSP/acquirer integration; raw payment credentials never enter FraudLens.
 
 For an asynchronous integration, the merchant sends `POST /v1/events`. FraudLens stores the event in the durable inbox and returns `202 Accepted`. A bounded worker later runs the same scoring service. Duplicate tenant/event IDs are ignored safely.
 

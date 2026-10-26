@@ -1,4 +1,4 @@
-.PHONY: install install-sdk install-frontend format format-check lint typecheck test sdk-test synthetic-evaluate db-retention webhook-dispatch event-process frontend-check db-migrate db-bootstrap check
+.PHONY: install install-sdk install-frontend format format-check lint typecheck test sdk-test synthetic-evaluate train-model db-retention webhook-dispatch event-process frontend-check db-migrate db-bootstrap check
 
 install:
 	python3 -m pip install -e ".[dev]"
@@ -29,6 +29,9 @@ sdk-test:
 
 synthetic-evaluate:
 	PYTHONPATH=backend:. python3 scripts/evaluate_detector.py
+
+train-model:
+	PYTHONPATH=backend:. python3 scripts/train_model.py
 
 db-retention:
 	python3 -m app.cli.retention

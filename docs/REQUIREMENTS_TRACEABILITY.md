@@ -1,7 +1,7 @@
 # FraudLens Requirements-to-Implementation Traceability
 
 **Baseline date:** 2026-10-26  
-**Implementation status:** Milestones 0–9 implemented; the Next.js live-data console is implemented; live PostgreSQL verification depends on the local Docker runtime.
+**Implementation status:** Milestones 0–10 implemented; the Next.js live-data console and complete synthetic payment showcase are implemented; live PostgreSQL verification depends on the local Docker runtime.
 
 ## Current repository state
 
@@ -27,6 +27,7 @@ Status values: `Not started`, `Planned M0`, `Planned M1`, `Later`, and `Needs de
 | PRD FR-12; Security §2 | Retention defaults are documented and deletion is tested before real pilot use | Retention configuration/job and tests | Later / M7 |
 | PRD FR-13 | Analyst dashboard supports transaction, alert, case, and score workflows | Next.js live-data operations console with server-side API proxy | M6 revised and implemented; OIDC remains enterprise follow-up |
 | PRD FR-14; Integration §8 | Typed SDK and simulator demonstrate auth, timeout, idempotency, and shadow behavior | Python SDK and merchant simulator | M3 implemented |
+| Showcase / integration lifecycle | Customer checkout, provider result, FraudLens assessment, merchant outcome, alert, audit, webhook, and model artifact path are demonstrable end-to-end | Sandbox payment API, Checkout console, training command, payment showcase runbook | M10 implemented |
 | NFR security; Security §2–3 | No payment credentials; secrets are hashed/rotated; input and tenant boundaries are protected | Secret-safe config, validation, auth, isolation tests | M1 foundation implemented; hardening later |
 | NFR reliability; Architecture §111–118 | Bounded dependencies, explicit readiness/failure states, and no hidden payment decision | Health/readiness and failure policy | M1 implemented; scoring later |
 | NFR performance; PRD §110, §124 | Synthetic load reports p50/p95/p99 latency and error rate | Load test and report | M7 tooling implemented; live report requires running service |
@@ -151,6 +152,17 @@ Status values: `Not started`, `Planned M0`, `Planned M1`, `Later`, and `Needs de
 - [x] Release checklist includes operational and deployment controls.
 - [x] No cloud vendor or Kubernetes dependency was introduced.
 - [x] Tenant rule configuration can be read and replaced as an audited, validated immutable version using `config:read`/`config:write`.
+
+### Milestone 10 gate — complete locally
+
+- [x] Synthetic Checkout creates a tenant-scoped payment intent without payment credentials.
+- [x] Deterministic mock gateway scenarios cover approved, declined, and timeout provider outcomes.
+- [x] FraudLens scoring runs for the payment and returns a separate risk recommendation.
+- [x] Provider outcome, payment outcome, merchant decision, assessment, alert, audit, and timeline are persisted separately.
+- [x] Payment idempotency, authentication, and tenant-scoped reads are tested.
+- [x] Next.js Checkout page demonstrates the complete local payment lifecycle with no fabricated records.
+- [x] Model training writes a versioned synthetic artifact and evaluation report.
+- [x] Scoring can load an explicitly configured reviewed artifact while reporting ML availability and model signals.
 
 ### Milestone 1 verification note
 

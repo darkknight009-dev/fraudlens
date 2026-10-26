@@ -27,7 +27,8 @@ from app.schemas.scoring import (
 from app.schemas.transactions import CanonicalTransaction
 from app.services.alerts import create_alert_if_needed
 from app.services.auth import Principal
-from app.services.rules import aggregate_score, evaluate_rules, get_active_rules
+from app.services.ml_runtime import load_detector, transaction_features
+from app.services.rules import RuleSignal, aggregate_score, evaluate_rules, get_active_rules
 
 SCORE_ENDPOINT = "/v1/transactions/score"
 
@@ -142,6 +143,28 @@ def score_transaction(
     rule_set, configuration = get_active_rules(session, principal.tenant_id)
     rules, features = evaluate_rules(session, transaction, configuration)
     score, level = aggregate_score(rules, configuration)
+    model_version: str | None = None
+    ml_status = "disabled"
+    try:
+        detector, model_version = load_detector(settings)
+        if detector is not None:
+            ml_score = int(round(detector.score([transaction_features(session, transaction)])[0]))
+            ml_status = "complete"
+            if ml_score >= 50:
+                contribution = min(25, max(1, (ml_score - 49) // 2))
+                rules.append(
+                    RuleSignal(
+                        "MODEL_ANOMALY_PRIORITY",
+                        "Reviewed anomaly detector prioritised this transaction.",
+                        "high",
+                        {"model_score": ml_score, "model_version": model_version},
+                        contribution,
+                    )
+                )
+                score, level = aggregate_score(rules, configuration)
+    except (FileNotFoundError, TypeError, RuntimeError, ValueError):
+        model_version = None
+        ml_status = "unavailable"
     assessment = Assessment(
         tenant_id=principal.tenant_id,
         transaction_id=transaction.id,
@@ -150,9 +173,9 @@ def score_transaction(
         mode=settings.risk_mode_default,
         assessment_status=AssessmentStatus.COMPLETE,
         rule_set_version=rule_set.version,
-        model_version=None,
+        model_version=model_version,
         feature_snapshot=features,
-        detector_status={"rules": "complete", "ml": "disabled"},
+        detector_status={"rules": "complete", "ml": ml_status},
         request_id=request_id,
     )
     session.add(assessment)
@@ -163,7 +186,11 @@ def score_transaction(
                 tenant_id=principal.tenant_id,
                 assessment_id=assessment.id,
                 reason_code=signal.reason_code,
-                source=SignalSource.RULE,
+                source=(
+                    SignalSource.MODEL
+                    if signal.reason_code.startswith("MODEL_")
+                    else SignalSource.RULE
+                ),
                 severity=SignalSeverity(signal.severity),
                 message_template_key=signal.reason_code,
                 evidence=signal.evidence,
@@ -182,14 +209,18 @@ def score_transaction(
             RiskSignalResponse(
                 reason_code=signal.reason_code,
                 message=signal.message,
-                source=SignalSource.RULE,
+                source=(
+                    SignalSource.MODEL
+                    if signal.reason_code.startswith("MODEL_")
+                    else SignalSource.RULE
+                ),
                 severity=SignalSeverity(signal.severity),
                 evidence=signal.evidence,
                 contribution=signal.contribution,
             )
             for signal in rules
         ],
-        detector_status=DetectorStatus(rules="complete", ml="disabled"),
+        detector_status=DetectorStatus(rules="complete", ml=ml_status),
         rule_set_version=rule_set.version,
         model_version=None,
         request_id=request_id,

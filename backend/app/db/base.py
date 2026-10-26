@@ -17,6 +17,7 @@ def import_models() -> None:
         audit_event,
         event,
         idempotency,
+        payment,
         rule_set,
         tenant,
         transaction,

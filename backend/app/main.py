@@ -11,6 +11,7 @@ from app.api.audit import router as audit_router
 from app.api.config import router as config_router
 from app.api.events import router as events_router
 from app.api.health import router as health_router
+from app.api.payments import router as payments_router
 from app.api.transactions import router as transactions_router
 from app.api.webhooks import router as webhooks_router
 from app.core.config import get_settings
@@ -57,6 +58,7 @@ app.include_router(alerts_router)
 app.include_router(audit_router)
 app.include_router(config_router)
 app.include_router(events_router)
+app.include_router(payments_router)
 app.include_router(webhooks_router)
 
 

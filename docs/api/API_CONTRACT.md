@@ -138,6 +138,14 @@ Scoring and alert creation only enqueue durable delivery records. Network delive
 
 Accepts `{ "event_id": "...", "transaction": <canonical transaction> }`, requires `transactions:score`, persists the event, and returns `202 Accepted`. Duplicate tenant-scoped event IDs return the existing status and never create a second inbox record. `make event-process` processes a bounded batch using the same scoring service.
 
+### Sandbox payment journey (Milestone 10)
+
+- `POST /v1/sandbox/payments` accepts a synthetic checkout request and requires `transactions:score` plus `Idempotency-Key`.
+- `GET /v1/sandbox/payments` lists tenant-scoped sandbox payment intents and requires `transactions:read`.
+- `GET /v1/sandbox/payments/{payment_id}` returns the persisted payment timeline and requires `transactions:read`.
+
+The request accepts only named test payment methods: `test_approved`, `test_declined`, or `test_timeout`. It never accepts PAN, CVV, PIN, OTP, bank credentials, or real payment tokens. The mock gateway result is stored as `provider_status`; FraudLens stores a separate `risk_score` and `risk_recommendation`. Shadow mode cannot change `payment_status`.
+
 ## Pagination
 Use cursor pagination where feasible, or `limit` + `offset` for MVP. Enforce a maximum page size (e.g. 100). Sort order must be deterministic.
 

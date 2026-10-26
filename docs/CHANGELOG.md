@@ -18,3 +18,4 @@ All notable project changes should be recorded here.
 - Durable event inbox completed: asynchronous canonical transaction ingestion, duplicate event protection, and bounded processing CLI.
 - Frontend replaced with a Next.js 16 live-data operations console: server-only API proxy, no seeded demo records, empty-state handling, dense queue triage, case controls, and analyst notes.
 - Operations console completed: working Overview, Alert queue, Transactions, Rules, Audit trail, and Webhooks sections mapped to their backend scopes and actions.
+- Milestone 10 added: end-to-end synthetic Checkout flow, mock provider attempts, payment intent/timeline persistence, separate provider and FraudLens outcomes, optional trained model artifact loading, and model training report.

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { Alert, Assessment, AuditEvent, ApiError, RuleConfiguration, WebhookDelivery, WebhookEndpoint } from "@/lib/types";
+import type { Alert, Assessment, AuditEvent, ApiError, Payment, RuleConfiguration, WebhookDelivery, WebhookEndpoint } from "@/lib/types";
 
 function message(body: ApiError, fallback: string) {
   return body.error?.message ?? body.message ?? fallback;
@@ -72,6 +72,46 @@ export function TransactionsView() {
       <div className="data-panel lookup-panel"><div className="data-panel-header"><div><span className="panel-index">01</span><h2>Assessment history</h2><p>Tenant-scoped and paginated by the API</p></div></div><div className="lookup-form"><input value={transactionId} onChange={(event) => setTransactionId(event.target.value)} placeholder="Transaction ID" aria-label="Transaction ID" /><button type="button" className="dark-action" onClick={() => void lookup()} disabled={busy}>{busy ? "Looking up…" : "Look up"}<span>↗</span></button></div>{lookupError ? <Failure text={lookupError} /> : null}{assessments.length === 0 && !lookupError ? <div className="view-empty compact"><h3>No transaction loaded</h3><p>Enter an existing transaction ID to inspect its assessment history.</p></div> : <div className="assessment-list">{assessments.map((assessment) => <div className="assessment-row" key={assessment.assessment_id}><div><strong>{assessment.assessment_id}</strong><small>{assessment.request_id} · {assessment.rule_set_version}</small></div><b className={`priority-score priority-${assessment.risk_level}`}>{assessment.risk_score}</b><span>{assessment.risk_level}</span></div>)}</div>}</div>
       <form className="data-panel score-form" onSubmit={score}><div className="data-panel-header"><div><span className="panel-index">02</span><h2>Run assessment</h2><p>Advisory only. No payment outcome is changed.</p></div><span className="form-mode">SHADOW</span></div><div className="form-grid">{([ ["transaction_id", "Transaction ID", "text"], ["amount_minor", "Amount minor", "number"], ["currency", "Currency", "text"], ["occurred_at", "Occurred at", "datetime-local"], ["account_ref", "Account reference", "text"], ["device_ref", "Device reference", "text"], ["merchant_ref", "Merchant reference", "text"] ] as const).map(([key, label, type]) => <label key={key}>{label}<input required={!["device_ref", "merchant_ref"].includes(key)} type={type} value={form[key]} onChange={setField(key)} /></label>)}<label>Channel<select required value={form.channel} onChange={setField("channel")}><option value="">Select channel</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option><option value="wallet">Wallet</option><option value="upi">UPI</option><option value="other">Other</option></select></label><label>Provider status<input value={form.provider_status} onChange={setField("provider_status")} /></label></div>{scoreError ? <Failure text={scoreError} /> : null}<button className="dark-action full-action" type="submit">Score transaction <span>↗</span></button>{scoreResult ? <div className="score-result"><strong>{scoreResult.risk_score}/100</strong><span>{scoreResult.risk_level} · {scoreResult.assessment_status} · {scoreResult.mode}</span></div> : null}</form>
     </section>
+  </div>;
+}
+
+export function CheckoutView() {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [selected, setSelected] = useState<Payment | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({ merchant_order_id: "", amount_minor: "", currency: "INR", account_ref: "", device_ref: "", channel: "upi", payment_method: "test_approved" });
+
+  async function load() {
+    setError("");
+    const response = await fetch("/api/dashboard/payments?limit=50", { cache: "no-store" });
+    const body = await response.json() as { items?: Payment[] } & ApiError;
+    if (!response.ok) throw new Error(message(body, "Payment history could not be loaded."));
+    setPayments(body.items ?? []);
+  }
+
+  useEffect(() => { void load().catch((reason) => setError(reason instanceof Error ? reason.message : "Payment history could not be loaded.")); }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setError(""); setSelected(null);
+    try {
+      const response = await fetch("/api/dashboard/payments", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": `checkout_${crypto.randomUUID()}` }, body: JSON.stringify({ ...form, amount_minor: Number(form.amount_minor), device_ref: form.device_ref || null, metadata: { source: "sandbox_checkout" } }) });
+      const body = await response.json() as Payment & ApiError;
+      if (!response.ok) throw new Error(message(body, "Payment could not be processed."));
+      setSelected(body); setPayments((current) => [body, ...current]);
+      setForm((current) => ({ ...current, merchant_order_id: "", amount_minor: "", account_ref: "", device_ref: "" }));
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Payment could not be processed."); } finally { setBusy(false); }
+  }
+
+  const setField = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const money = (payment: Payment) => `${payment.currency} ${(payment.amount_minor / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  return <div className="view-stack">
+    <section className="view-heading"><div><span className="panel-index">07 / SANDBOX CHECKOUT</span><h2>Watch the payment happen.</h2><p>A complete local payment journey: checkout, mock gateway, FraudLens assessment, merchant policy, and final outcome.</p></div><span className="form-mode">NO REAL MONEY</span></section>
+    <section className="checkout-layout">
+      <form className="data-panel checkout-form" onSubmit={submit}><div className="data-panel-header"><div><span className="panel-index">01</span><h2>Customer checkout</h2><p>Uses safe synthetic payment methods only.</p></div><span className="form-mode">TEST RAIL</span></div><div className="checkout-amount"><small>PAYMENT AMOUNT</small><div><span>₹</span><input required type="number" min="1" value={form.amount_minor} onChange={setField("amount_minor")} placeholder="250000" /><em>minor units</em></div></div><div className="form-grid checkout-grid"><label>Merchant order<input required value={form.merchant_order_id} onChange={setField("merchant_order_id")} placeholder="order_10001" /></label><label>Currency<select value={form.currency} onChange={setField("currency")}><option>INR</option><option>USD</option><option>EUR</option></select></label><label>Account reference<input required value={form.account_ref} onChange={setField("account_ref")} placeholder="acct_customer_001" /></label><label>Device reference<input value={form.device_ref} onChange={setField("device_ref")} placeholder="device_browser_001" /></label><label>Channel<select value={form.channel} onChange={setField("channel")}><option value="upi">UPI</option><option value="card">Card</option><option value="wallet">Wallet</option><option value="bank_transfer">Bank transfer</option></select></label><label>Test payment method<select value={form.payment_method} onChange={setField("payment_method")}><option value="test_approved">Approved test token</option><option value="test_declined">Declined test token</option><option value="test_timeout">Timeout test token</option></select></label></div>{error ? <Failure text={error} /> : null}<button className="dark-action full-action" type="submit" disabled={busy}>{busy ? "Running payment workflow…" : "Submit payment"}<span>↗</span></button><p className="checkout-footnote">This sandbox records no PAN, CVV, PIN, OTP, or bank credentials. The mock gateway outcome stays separate from the FraudLens recommendation.</p></form>
+      <div className="data-panel payment-result-panel">{selected ? <><div className="data-panel-header"><div><span className="panel-index">02</span><h2>Payment lifecycle</h2><p>{selected.merchant_order_id} · {money(selected)}</p></div><span className={`payment-outcome payment-${selected.payment_status}`}>{selected.payment_status}</span></div><div className="payment-result-top"><div><small>PROVIDER OUTCOME</small><strong>{selected.provider_status}</strong><span>{selected.provider_reference}</span></div><div><small>FRAUDLENS</small><strong className={`risk-text-${selected.risk_level}`}>{selected.risk_score ?? "—"}/100</strong><span>{selected.risk_recommendation ?? "unavailable"} recommendation</span></div></div><div className="payment-timeline">{selected.timeline.map((step, index) => <div className="payment-step" key={step.name}><span className={`step-node step-${step.status}`}>{index + 1}</span><div><strong>{step.name.replaceAll("_", " ")}</strong><p>{step.detail}</p></div></div>)}</div></> : <div className="view-empty"><div className="empty-mark"><span /><span /><span /></div><h3>Your payment timeline appears here</h3><p>Submit a test payment to see the exact handoff between merchant checkout, gateway, FraudLens, and policy.</p></div>}</div>
+    </section>
+    <section className="data-panel"><div className="data-panel-header"><div><span className="panel-index">03</span><h2>Payment activity</h2><p>Persisted sandbox intents for this tenant</p></div><button type="button" className="text-action" onClick={() => void load()}>Refresh activity</button></div>{payments.length === 0 ? <div className="view-empty compact"><h3>No payments yet</h3><p>Payments created through this checkout will appear in this ledger.</p></div> : <div className="payment-ledger">{payments.map((payment) => <button type="button" key={payment.id} onClick={() => setSelected(payment)}><span className={`risk-bar risk-${payment.risk_level ?? "medium"}`} /><span><strong>{payment.merchant_order_id}</strong><small>{money(payment)} · {payment.provider_status} · {date(payment.created_at)}</small></span><b className={`payment-outcome payment-${payment.payment_status}`}>{payment.payment_status}</b><strong className={`priority-score priority-${payment.risk_level ?? "medium"}`}>{payment.risk_score ?? "—"}</strong></button>)}</div>}</section>
   </div>;
 }
 
