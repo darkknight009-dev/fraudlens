@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!frontend/.env.local.example
 
 __pycache__/
 *.py[cod]
@@ -16,6 +17,7 @@ venv/
 node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.next/
 
 data/generated/
 data/local/

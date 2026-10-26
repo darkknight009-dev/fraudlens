@@ -113,6 +113,8 @@ Append-oriented. Avoid storing raw request bodies.
 - `expires_at`, `created_at`
 Unique: `(tenant_id, endpoint, key_hash)`.
 
+For synchronous scoring, the idempotency record stores the original safe response. A repeated key with the same canonical request fingerprint returns that response; a repeated key with a different fingerprint returns `409 IDEMPOTENCY_KEY_REUSED`.
+
 ### WebhookEndpoint / WebhookDelivery (later)
 Store endpoint metadata, secret reference (not plaintext), event subscription, retry state, response status, and timestamps. Do not expose signing secrets.
 

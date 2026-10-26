@@ -33,7 +33,7 @@ Checks required dependencies and configuration. Returns 200 when ready, otherwis
 Synchronous risk scoring. Requires `transactions:score`.
 
 Headers:
-- `Idempotency-Key`: required for production-like integration; optional in local demo only if implementation clearly documents behavior.
+- `Idempotency-Key`: required for the scoring endpoint. The server returns `400 IDEMPOTENCY_KEY_REQUIRED` when it is absent.
 - `X-Correlation-ID`: optional client-generated ID, validated and length-limited.
 
 Request:
@@ -90,10 +90,10 @@ Values above are illustrative only. The system must compute them from the reques
 
 Potential status codes:
 - `200`: assessment returned, including documented partial/degraded result.
-- `400`: malformed request or idempotency key reused with different body.
+- `400`: malformed request or missing/invalid idempotency key.
 - `401`: missing/invalid credential.
 - `403`: valid credential lacks scope.
-- `409`: conflicting transaction or idempotency state.
+- `409`: conflicting transaction or idempotency state, including `IDEMPOTENCY_KEY_REUSED`.
 - `422`: semantic validation failure.
 - `429`: rate limit exceeded.
 - `503`: service cannot provide a safe assessment according to configured behavior.
@@ -120,8 +120,23 @@ Read active tenant rule configuration. Requires `config:read`.
 ### `PUT /v1/config/rules`
 Validate and replace rule configuration as a new version. Requires `config:write`. Changes must be audited and support rollback.
 
+The active configuration uses the strict rule schema implemented by the service. Historical versions are not overwritten; a replacement deactivates the previous active version and creates a new version.
+
 ### `GET /v1/audit-events`
 Paginated audit events for authorized administrators. Requires `audit:read`.
+
+### Webhook management (Milestone 8)
+
+- `POST /v1/webhook-endpoints` registers an HTTPS endpoint and returns its secret once. Requires `config:write`.
+- `GET /v1/webhook-endpoints` lists endpoint metadata without secrets. Requires `config:read`.
+- `GET /v1/webhook-deliveries` lists delivery status and bounded attempt metadata. Requires `config:read`.
+- `POST /v1/webhook-deliveries/{delivery_id}/replay` requeues a failed delivery. Requires `config:write`.
+
+Scoring and alert creation only enqueue durable delivery records. Network delivery runs asynchronously and cannot change the synchronous scoring response.
+
+### `POST /v1/events` (Milestone 8)
+
+Accepts `{ "event_id": "...", "transaction": <canonical transaction> }`, requires `transactions:score`, persists the event, and returns `202 Accepted`. Duplicate tenant-scoped event IDs return the existing status and never create a second inbox record. `make event-process` processes a bounded batch using the same scoring service.
 
 ## Pagination
 Use cursor pagination where feasible, or `limit` + `offset` for MVP. Enforce a maximum page size (e.g. 100). Sort order must be deterministic.

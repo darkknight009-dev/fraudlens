@@ -60,7 +60,7 @@ Use `amount_minor` rather than `amount` to avoid currency precision ambiguity. F
 - `advisory` returns results for customer policy evaluation but still does not act on payments itself.
 - No `block` or `decline` action is implemented in MVP.
 - Responses must include `mode`.
-- Dashboard must visibly label demo/synthetic data and shadow mode.
+- The operations console must visibly label shadow mode and must never fabricate live records; synthetic data belongs only in explicitly separate development tooling.
 
 ## 8. SDK
 Initial Python SDK requirements:

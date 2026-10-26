@@ -8,8 +8,14 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY backend ./backend
+COPY alembic.ini ./alembic.ini
 
 RUN python -m pip install --no-cache-dir .
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
+    && chown -R appuser:appgroup /app
+
+USER appuser
 
 EXPOSE 8000
 

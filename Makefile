@@ -1,7 +1,10 @@
-.PHONY: install install-frontend format format-check lint typecheck test frontend-check check
+.PHONY: install install-sdk install-frontend format format-check lint typecheck test sdk-test synthetic-evaluate db-retention webhook-dispatch event-process frontend-check db-migrate db-bootstrap check
 
 install:
 	python3 -m pip install -e ".[dev]"
+
+install-sdk:
+	python3 -m pip install -e sdk/python
 
 install-frontend:
 	npm --prefix frontend ci
@@ -21,7 +24,28 @@ typecheck:
 test:
 	python3 -m pytest
 
+sdk-test:
+	PYTHONPATH=sdk/python python3 -m pytest sdk/python/tests
+
+synthetic-evaluate:
+	PYTHONPATH=backend:. python3 scripts/evaluate_detector.py
+
+db-retention:
+	python3 -m app.cli.retention
+
+webhook-dispatch:
+	python3 -m app.cli.webhooks
+
+event-process:
+	python3 -m app.cli.events
+
 frontend-check:
 	npm --prefix frontend run build
 
-check: format-check lint typecheck test frontend-check
+db-migrate:
+	python3 -m alembic upgrade head
+
+db-bootstrap:
+	python3 -m app.cli.bootstrap --scope transactions:score
+
+check: format-check lint typecheck test sdk-test frontend-check

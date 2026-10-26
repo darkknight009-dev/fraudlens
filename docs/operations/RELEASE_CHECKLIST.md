@@ -12,6 +12,8 @@
 - [ ] API docs match implementation.
 - [ ] Demo script works from a clean environment.
 - [ ] Known limitations documented.
+- [ ] Configuration validation and non-root container profile checked.
+- [ ] Retention, webhook, and backup/restore commands are documented.
 
 ## Pilot release (not covered by MVP alone)
 - [ ] Threat model and independent security review complete.

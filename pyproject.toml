@@ -11,8 +11,11 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
   "alembic==1.14.0",
   "fastapi==0.115.6",
+  "cryptography==44.0.0",
+  "httpx==0.28.1",
   "psycopg[binary]==3.2.3",
   "pydantic-settings==2.7.1",
+  "scikit-learn==1.6.1",
   "sqlalchemy==2.0.36",
   "structlog==24.4.0",
   "uvicorn[standard]==0.34.0",
@@ -20,7 +23,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "httpx==0.28.1",
   "mypy==1.14.1",
   "pytest==8.3.4",
   "pytest-cov==6.0.0",
@@ -29,9 +31,10 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["backend"]
+include = ["app*"]
 
 [tool.pytest.ini_options]
-testpaths = ["backend/tests"]
+testpaths = ["backend/tests", "sdk/python/tests"]
 addopts = "--strict-markers --strict-config"
 
 [tool.ruff]
